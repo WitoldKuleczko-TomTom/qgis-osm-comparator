@@ -1,0 +1,28 @@
+[general]
+name=OSM Feature Comparator v4
+qgisMinimumVersion=3.0
+qgisMaximumVersion=3.99
+description=Compare multiple OpenStreetMap features side-by-side; re-select the same element to view its version history
+version=4.0.0
+author=COPA
+email=
+about=Plugin allows selecting multiple OSM features by clicking on the QGIS canvas.
+    It displays their tags in a multi-column comparison table with colour coding.
+    New in v4:
+    - "Add feature" button in the comparison dialog to add a 3rd, 4th, ... feature column.
+    - Selecting the same OSM element again triggers a version-history comparison
+      (current version vs. the immediately preceding version, fetched from the OSM REST API).
+    Colour coding:
+    - green:           identical value across all compared items
+    - yellow:          key present in all, but values differ
+    - feature colour:  key unique to one feature / version
+    - light gray:      key absent in this feature
+
+tracker=
+repository=
+tags=openstreetmap, osm, comparison, attributes, history
+homepage=
+category=Web
+icon=resources/icon.svg
+experimental=False
+deprecated=False
