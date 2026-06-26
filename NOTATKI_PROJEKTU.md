@@ -13,6 +13,7 @@ D:\COPA\QGIS_plugin\
 ├── osm_feature_comparator_v2.zip
 ├── osm_feature_comparator_v3.zip
 ├── osm_feature_comparator_v3_eng.zip
+├── osm_feature_comparator_v4.zip
 └── osm_feature_comparator_v5.zip   ← do instalacji w QGIS
 ```
 
@@ -20,11 +21,14 @@ D:\COPA\QGIS_plugin\
 **Plugins → Manage and Install Plugins → Install from ZIP**  
 Wskaż odpowiedni plik `.zip`.
 
+## Repozytorium GitHub
+**https://github.com/WitoldKuleczko-TomTom/qgis-osm-comparator**
+
 ---
 
 ## Opis pluginu
 
-Plugin do QGIS 3.40.4 umożliwiający porównanie atrybutów (tagów) dwóch obiektów OpenStreetMap przez kliknięcie na canvie.
+Plugin do QGIS 3.x umożliwiający porównanie atrybutów (tagów) wielu obiektów OpenStreetMap przez kliknięcie na canvie.
 
 ### Przepływ działania
 1. Użytkownik aktywuje plugin z toolbara / menu Web
@@ -167,7 +171,7 @@ Gdy użytkownik wybierze element już obecny w porównaniu (ten sam `type` + `id
 3. `HistoryFetchWorker(QThread)` pobiera: `GET https://api.openstreetmap.org/api/0.6/{type}/{id}/history.json`
 4. `_on_history_loaded()` → `HistoryComparisonDialog` z ostatnimi 2 wersjami (`versions[-1]` vs `versions[-2]`)
 5. Nagłówek zawiera: `v{N} · YYYY-MM-DD · by {user} · cs#{changeset}`
-6. Po zamknięciu: `_resume_after_history()` — wraca do porównania (≥2 featureów) lub reaktywuje tool (1 feature)
+6. Po zamknięciu: `_resume_after_history()` — wraca do porównania (≥2 featureów) lub **deaktywuje plugin** (1 feature, zmiana w v5)
 
 ### 3. Poprawki robustności (v4 vs v3_eng)
 
@@ -176,6 +180,30 @@ Gdy użytkownik wybierze element już obecny w porównaniu (ten sam `type` + `id
 | Przerwanie w trakcie pobierania | `_abort_worker()` wywoływany przy zmianie stanu toolbara |
 | Błąd pobierania historii bez powrotu do UI | Dedykowany `_on_history_fetch_error()` → `_resume_after_history()` |
 | Martwe wyniki po anulowaniu | `_abort_worker()` przed każdym nowym sessionem |
+
+---
+
+## Nowe funkcje v5
+
+### Fix: zamknięcie dialogu historii = pełne wyłączenie pluginu
+
+**Problem (v4):** Po wybraniu tego samego elementu dwa razy (co otwierało `HistoryComparisonDialog`), naciśnięcie **Close** pozostawiało plugin aktywny — map tool nadal czekał na kliknięcie w canvie.
+
+**Rozwiązanie (v5):** Zmiana w `_resume_after_history()` w `plugin.py`:
+
+```python
+# v4 — stare zachowanie (błąd)
+else:
+    self._set_action_checked(True)
+    self._activate_tool()   # ← wtyczka nadal aktywna
+
+# v5 — poprawne zachowanie
+else:
+    self._features = []
+    self._deactivate_tool()  # ← pełne wyłączenie
+```
+
+Przypadek z ≥2 featurami (użytkownik dodawał feature i wybrał duplikat) zachowuje się po staremu — wraca do okna porównania.
 
 ---
 
