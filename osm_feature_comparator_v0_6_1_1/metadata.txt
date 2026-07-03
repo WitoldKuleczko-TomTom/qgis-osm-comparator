@@ -1,9 +1,9 @@
 [general]
-name=OSM Feature Comparator v5
+name=OSM Feature Comparator v0.6.1.1
 qgisMinimumVersion=3.0
 qgisMaximumVersion=3.99
 description=Compare multiple OpenStreetMap features side-by-side; re-select the same element to view its version history
-version=0.5.0
+version=0.6.1.1
 author=Witold Kuleczko
 email=
 about=Plugin allows selecting multiple OSM features by clicking on the QGIS canvas.
@@ -12,6 +12,14 @@ about=Plugin allows selecting multiple OSM features by clicking on the QGIS canv
     - "Add feature" button in the comparison dialog to add a 3rd, 4th, ... feature column.
     - Selecting the same OSM element again triggers a version-history comparison
       (current version vs. the immediately preceding version, fetched from the OSM REST API).
+    New in v0.6.1.1:
+    - Live rubber-band preview in the "Select OSM Feature" dialog: as you move
+      through the list, the corresponding feature is highlighted on the canvas
+      so you can visually identify it before confirming your choice.
+    New in v0.6.1:
+    - Selected features are highlighted on the QGIS canvas with a colour-coded
+      rubber band (matching the column colour in the comparison table).
+      Highlights are cleared when a new comparison session starts.
     New in v5:
     - Closing the history comparison dialog now fully deactivates the plugin
       (previously the tool remained active waiting for the next canvas click).

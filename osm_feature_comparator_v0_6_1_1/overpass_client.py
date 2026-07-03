@@ -34,13 +34,13 @@ is_in({lat},{lon})->.enclosing;
   way(pivot.enclosing);
   relation(pivot.enclosing);
 );
-out tags;"""
+out geom tags;"""
 
     data = urllib.parse.urlencode({"data": query}).encode("utf-8")
     req  = urllib.request.Request(
         OVERPASS_URL,
         data=data,
-        headers={"User-Agent": "QGIS-OSMFeatureComparator/4.0"},
+        headers={"User-Agent": "QGIS-OSMFeatureComparator/0.6.1"},
     )
 
     with urllib.request.urlopen(req, timeout=30) as response:

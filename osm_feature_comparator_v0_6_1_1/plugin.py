@@ -2,7 +2,7 @@
 import os
 
 from PyQt5.QtWidgets import QAction
-from PyQt5.QtGui import QIcon
+from PyQt5.QtGui import QColor, QIcon
 from qgis.core import Qgis
 
 from .map_tool              import OSMClickTool
@@ -11,12 +11,23 @@ from .feature_selector_dialog import FeatureSelectorDialog
 from .comparison_dialog     import ComparisonDialog
 from .history_dialog        import HistoryComparisonDialog
 from .worker                import FetchWorker, HistoryFetchWorker
+from .highlight             import make_rubber_bands, clear_rubber_bands
+
+# Rubber-band stroke colours — one per feature slot, matching comparison table headers
+_RUBBER_BAND_COLORS = [
+    QColor("#C62828"),  # F1 – dark red   (header: #FFCDD2 pink)
+    QColor("#1565C0"),  # F2 – dark blue  (header: #BBDEFB blue)
+    QColor("#2E7D32"),  # F3 – dark green (header: #C8E6C9 green)
+    QColor("#E65100"),  # F4 – orange     (header: #FFF9C4 yellow)
+    QColor("#6A1B9A"),  # F5 – purple     (header: #E1BEE7 lavender)
+    QColor("#00695C"),  # F6 – teal       (header: #FFE0B2 orange)
+]
 
 
 class OSMFeatureComparator:
-    """Main plugin class for OSM Feature Comparator v4."""
+    """Main plugin class for OSM Feature Comparator v0.6.1.1."""
 
-    PLUGIN_NAME = "OSM Feature Comparator v5"
+    PLUGIN_NAME = "OSM Feature Comparator v0.6.1.1"
 
     def __init__(self, iface):
         self.iface  = iface
@@ -24,9 +35,10 @@ class OSMFeatureComparator:
         self.map_tool = None
         self.action   = None
 
-        self._features = []     # accumulated list of selected OSM feature dicts
-        self._worker   = None   # active QThread reference
-        self._loading  = False  # guard: block clicks while a request is in flight
+        self._features     = []     # accumulated list of selected OSM feature dicts
+        self._worker       = None   # active QThread reference
+        self._loading      = False  # guard: block clicks while a request is in flight
+        self._rubber_bands = []     # QgsRubberBand items drawn on the canvas
 
     # ── QGIS lifecycle ───────────────────────────────────────────────────────
 
@@ -49,6 +61,7 @@ class OSMFeatureComparator:
 
     def unload(self):
         self._abort_worker()
+        self._clear_rubber_bands()
         self._deactivate_tool()
         self.iface.removeToolBarIcon(self.action)
         self.iface.removePluginWebMenu(self.PLUGIN_NAME, self.action)
@@ -57,11 +70,13 @@ class OSMFeatureComparator:
 
     def _on_action_triggered(self, checked):
         if checked:
-            self._abort_worker()   # cancel any in-flight request
+            self._abort_worker()
+            self._clear_rubber_bands()
             self._features = []
             self._activate_tool()
         else:
             self._abort_worker()
+            self._clear_rubber_bands()
             self._deactivate_tool()
 
     def _activate_tool(self):
@@ -155,6 +170,7 @@ class OSMFeatureComparator:
 
         # ── Normal: add feature, maybe open comparison ────────────────────────
         self._features.append(selected)
+        self._add_rubber_band(selected, len(self._features) - 1)
         name = get_feature_display_name(selected)
 
         if len(self._features) == 1:
@@ -174,8 +190,11 @@ class OSMFeatureComparator:
         """Return the chosen feature — directly if unique, or via selection dialog."""
         if len(features) == 1:
             return features[0]
+        feature_index = len(self._features)
+        color = _RUBBER_BAND_COLORS[feature_index % len(_RUBBER_BAND_COLORS)]
         dialog = FeatureSelectorDialog(
-            features, click_number=click_number, parent=self.iface.mainWindow()
+            features, click_number=click_number, parent=self.iface.mainWindow(),
+            canvas=self.canvas, color=color,
         )
         if dialog.exec_() == FeatureSelectorDialog.Accepted:
             return dialog.selected_feature
@@ -197,6 +216,7 @@ class OSMFeatureComparator:
     def _on_compare_again(self):
         """User pressed '🔄 New comparison' — reset and start fresh."""
         self._features = []
+        self._clear_rubber_bands()
         self._set_action_checked(True)
         self._activate_tool()
 
@@ -251,6 +271,17 @@ class OSMFeatureComparator:
             # User selected the same element twice (history view) → close completely
             self._features = []
             self._deactivate_tool()
+
+    # ── Rubber-band highlighting ──────────────────────────────────────────────
+
+    def _add_rubber_band(self, feature, feature_index):
+        """Draw a persistent colour-coded rubber band for a confirmed feature."""
+        color = _RUBBER_BAND_COLORS[feature_index % len(_RUBBER_BAND_COLORS)]
+        self._rubber_bands.extend(make_rubber_bands(self.canvas, feature, color))
+
+    def _clear_rubber_bands(self):
+        """Remove all rubber-band highlights from the canvas."""
+        clear_rubber_bands(self.canvas, self._rubber_bands)
 
     # ── Messages ─────────────────────────────────────────────────────────────
 

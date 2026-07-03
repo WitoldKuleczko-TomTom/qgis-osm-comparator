@@ -11,7 +11,19 @@ Click anywhere on the canvas to query OpenStreetMap data at that location. The p
 - `around:10` — finds nearby roads, nodes and relations by measuring distance from geometry segments (not just nodes), so clicking in the middle of a road segment always works
 - `is_in` + `pivot` — finds enclosing areas such as buildings, parks, forests, landuse zones and administrative boundaries
 
-If multiple features are found at a click location, a selection dialog lets you pick the right one.
+If multiple features are found at a click location, a **non-blocking selection dialog** opens — the canvas stays fully interactive (pan, zoom) while you browse the list.
+
+### 🔦 Canvas highlighting
+Every feature is highlighted on the canvas with a colour-coded rubber band as soon as it is selected. The colour matches the corresponding column header in the comparison table. While browsing the selection dialog, each list item is **previewed live** on the canvas so you can visually identify it before confirming.
+
+| Feature type | Highlight style |
+|---|---|
+| Node | Circle icon |
+| Way (open) | 3 px coloured line |
+| Way (closed / polygon) | Semi-transparent fill + coloured border |
+| Relation | Each member way drawn individually; bounding box as fallback |
+
+Highlights are cleared when starting a new comparison or deactivating the plugin.
 
 ### 📊 Multi-feature comparison table
 Compare **N features side-by-side** in a colour-coded tag table:
@@ -42,17 +54,27 @@ All HTTP requests run in a background `QThread` — QGIS never freezes while wai
 
 ---
 
-## What's new in v5
+## What's new in v0.6.1.1
 
-**Fix: closing the history dialog now fully deactivates the plugin.**
+**Live canvas preview in the feature selection dialog.**
 
-In v4, after viewing the version history of an element (by selecting the same feature twice), pressing **Close** left the plugin active and waiting for another canvas click. In v5, closing the history dialog completely deactivates the map tool and resets the plugin state — consistent with the user's intent to finish the comparison.
+When multiple OSM features are found at a click location, the selection dialog now highlights each list item on the canvas as you move through it — so you can see exactly which road, building or boundary you are about to select before pressing OK.
+
+**What's new in v0.6.1** (base for this release):
+- All selected features are highlighted on the canvas with `QgsRubberBand` after confirmation.
+- Overpass query changed from `out tags` to `out geom tags` to retrieve geometry.
+- Rubber-band colours match the comparison table column headers.
+
+**What's new in v0.5.0:**
+- Versioning scheme changed to SemVer (`0.5.0`).
+- Author set to Witold Kuleczko.
+- Fix: closing the history dialog now fully deactivates the plugin (v5 behaviour preserved).
 
 ---
 
 ## Installation
 
-1. Download `osm_feature_comparator_v5.zip`
+1. Download `osm_feature_comparator_v0_6_1_1.zip`
 2. In QGIS: **Plugins → Manage and Install Plugins → Install from ZIP**
 3. Select the downloaded `.zip` file
 4. The plugin appears in the **Web** menu and toolbar
@@ -62,7 +84,9 @@ In v4, after viewing the version history of an element (by selecting the same fe
 ## How to use
 
 1. Click the **OSM Feature Comparator** toolbar button to activate
-2. Click on the map → select a feature from the dialog (if multiple results)
+2. Click on the map → if multiple features found, a dialog opens:
+   - Browse the list — each item is highlighted live on the canvas
+   - Confirm with **OK** or double-click
 3. Click on another location → select a second feature → comparison table opens
 4. Use **➕ Add feature** to add more columns to the comparison
 5. Use **🔄 New comparison** to reset and start over
@@ -73,22 +97,26 @@ In v4, after viewing the version history of an element (by selecting the same fe
 
 ## Version history
 
-| Version | API | is_in | Language | Notes |
-|---|---|---|---|---|
-| v1 | OSM API /map | ❌ | PL | Does not detect roads clicked mid-segment |
-| v2 | Overpass around | ❌ | PL | Correct road detection |
-| v3 | Overpass around + is_in | ✅ | PL | Matches OSM.org Query Features behaviour |
-| v3_eng | Overpass around + is_in | ✅ | EN | English version of v3 |
-| v4 | Overpass + OSM REST history | ✅ | EN | Multi-feature comparison + version history |
-| **v5** | Overpass + OSM REST history | ✅ | EN | **Fix: Close on history dialog fully deactivates plugin** |
+| Version | Highlights | Notes |
+|---|---|---|
+| v1 | — | OSM API /map; does not detect roads clicked mid-segment |
+| v2 | — | Overpass `around`; correct road detection |
+| v3 | — | + `is_in`; matches OSM.org Query Features (PL) |
+| v3_eng | — | English version of v3 |
+| v4 | — | Multi-feature comparison + version history |
+| v0.5.0 | — | SemVer; fix: Close on history dialog fully deactivates plugin |
+| v0.6.1 | 🔦 Canvas highlights | `QgsRubberBand` after feature confirmation; `out geom tags` |
+| **v0.6.1.1** | 🔦 Live preview | **Current** — preview in selector dialog; `highlight.py` shared module |
 
 ---
 
 ## Technical notes
 
+- **Overpass query:** `out geom tags` — returns geometry (coordinates) alongside tags
 - **Overpass radius:** 10 m (`DEFAULT_RADIUS_M` in `overpass_client.py`)
-- **Qt sorting bug:** `QTableWidget.setSortingEnabled(True)` must be called *after* all rows are populated — enabling it during `setItem()` causes Qt to shift rows and leave empty cells
-- **Async guard:** `_loading = True` blocks double-clicks while a request is in flight
+- **Rubber-band ownership:** all `QgsRubberBand` objects are owned by the plugin, never by dialogs — prevents orphaned canvas items on dialog garbage-collection
+- **Non-blocking selector:** `QDialog.show()` + signals instead of `exec_()` keeps the canvas interactive during feature selection
+- **Qt sorting bug:** `QTableWidget.setSortingEnabled(True)` must be called *after* all rows are populated
 - **History API:** `GET https://api.openstreetmap.org/api/0.6/{type}/{id}/history.json`
 
 ---
