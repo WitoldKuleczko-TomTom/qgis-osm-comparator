@@ -3,8 +3,8 @@ name=OSM Feature Comparator v5
 qgisMinimumVersion=3.0
 qgisMaximumVersion=3.99
 description=Compare multiple OpenStreetMap features side-by-side; re-select the same element to view its version history
-version=5.0.0
-author=COPA
+version=0.5.0
+author=Witold Kuleczko
 email=
 about=Plugin allows selecting multiple OSM features by clicking on the QGIS canvas.
     It displays their tags in a multi-column comparison table with colour coding.
